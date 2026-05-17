@@ -1,0 +1,51 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ewb_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ewb_mis
+      POSTGRES_USER: ewb_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ewb_user -d ewb_mis"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ewb_net
+
+  app:
+    build: .
+    container_name: ewb_app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://ewb_user:${POSTGRES_PASSWORD}@postgres:5432/ewb_mis
+      DB_SSL: "false"
+      NODE_ENV: production
+    networks:
+      - ewb_net
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ewb.rule=Host(`app.indianmetaltrading.com`)"
+      - "traefik.http.routers.ewb.entrypoints=https"
+      - "traefik.http.routers.ewb.tls=true"
+      - "traefik.http.routers.ewb.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ewb.loadbalancer.server.port=3000"
+      - "traefik.docker.network=coolify"
+
+volumes:
+  pg_data:
+
+networks:
+  ewb_net:
+  coolify:
+    external: true
