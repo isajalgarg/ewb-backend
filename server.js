@@ -251,36 +251,37 @@ async function fetchEWBDetail(ewbToken, apiKey, ewbNo) {
 
 // ── Map raw API detail to DB row ──
 function mapDetail(d, ewbNo) {
+  if (!d) { console.warn(`[mapDetail] null data for EWB ${ewbNo}`); return null; }
   const item = (d.itemList || d.ItemList || [])[0] || {};
   const n    = (v, def = 0) => parseFloat(v || def) || def;
   return {
     ewb_no:           String(ewbNo),
-    invoice_date:     d.docDate            || null,
-    from_party:       d.fromTrdName        || null,
-    from_gstin:       d.fromGstin          || null,
-    from_place:       d.fromPlace          || null,
-    from_pincode:     d.fromPincode        ? String(d.fromPincode)   : null,
-    from_state:       d.fromStateCode      ? String(d.fromStateCode) : null,
-    to_party:         d.toTrdName          || null,
-    to_gstin:         d.toGstin            || null,
-    to_place:         d.toPlace || d.destination || null,
-    to_pincode:       d.toPincode          ? String(d.toPincode)     : null,
-    to_state:         d.toStateCode        ? String(d.toStateCode)   : null,
-    material:         item.productName     || d.productDesc          || null,
-    hsn:              item.hsnCode         ? String(item.hsnCode)    : null,
-    quantity:         n(item.quantity      || d.quantity),
-    qty_unit:         item.qtyUnit         || d.qtyUnit              || 'MT',
-    taxable_amt:      n(d.totalValue       || d.taxableAmt),
-    igst_amt:         n(d.igstValue        || d.igstAmt),
-    cgst_amt:         n(d.cgstValue        || d.cgstAmt),
-    sgst_amt:         n(d.sgstValue        || d.sgstAmt),
-    cess_amt:         n(d.cessValue        || d.cessAmt),
-    total_inv_value:  n(d.totInvValue      || d.totalInvValue),
-    vehicle_no:       d.vehicleNo          || null,
-    transporter_id:   d.transporterId      || null,
-    transporter_name: d.transporterName    || null,
-    distance:         d.distance           ? String(d.distance)      : null,
-    trans_mode:       d.transMode          ? String(d.transMode)     : null,
+    invoice_date:     d.docDate             || null,
+    from_party:       d.fromTrdName         || null,
+    from_gstin:       d.fromGstin           || null,
+    from_place:       d.fromPlace           || null,
+    from_pincode:     d.fromPincode         ? String(d.fromPincode)   : null,
+    from_state:       d.actFromStateCode    ? String(d.actFromStateCode) : (d.fromStateCode ? String(d.fromStateCode) : null),
+    to_party:         d.toTrdName           || null,
+    to_gstin:         d.toGstin             || null,
+    to_place:         d.toPlace             || null,
+    to_pincode:       d.toPincode           ? String(d.toPincode)     : null,
+    to_state:         d.actToStateCode      ? String(d.actToStateCode) : (d.toStateCode ? String(d.toStateCode) : null),
+    material:         item.productDesc      || item.productName       || null,  // ← was productName first, raw has productDesc
+    hsn:              item.hsnCode          ? String(item.hsnCode)    : null,
+    quantity:         n(item.quantity),
+    qty_unit:         item.qtyUnit          || 'MT',
+    taxable_amt:      n(item.taxableAmount  || d.totalValue),          // ← raw has taxableAmount on item
+    igst_amt:         n(d.igstValue),
+    cgst_amt:         n(d.cgstValue),
+    sgst_amt:         n(d.sgstValue),
+    cess_amt:         n(d.cessValue),
+    total_inv_value:  n(d.totInvValue),
+    vehicle_no:       (d.VehiclListDetails  || [])[0]?.vehicleNo      || null,  // ← raw has VehiclListDetails array
+    transporter_id:   d.transporterId       || null,
+    transporter_name: d.transporterName     || null,
+    distance:         d.actualDist          ? String(d.actualDist)    : null,   // ← raw has actualDist not distance
+    trans_mode:       (d.VehiclListDetails  || [])[0]?.transMode      || null,
   };
 }
 
