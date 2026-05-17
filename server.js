@@ -232,8 +232,8 @@ async function fetchEWBsByDate(ewbToken, apiKey, ddmmyyyy) {
 
 // Step 4 ── Full EWB detail
 
-async function fetchEWBDetail(ewbToken, apiKey, ewbNo, docType = 'INV') {
-  const url = `${SANDBOX}/gst/compliance/e-way-bill/consignor/bill?document_number=${ewbNo}&document_type=${docType}`;
+async function fetchEWBDetail(ewbToken, apiKey, ewbNo) {
+  const url = `${SANDBOX}/gst/compliance/e-way-bill/tax-payer/bill/${ewbNo}`;
   console.log(`[Detail] Fetching EWB ${ewbNo} → ${url}`);
 
   const res  = await fetch(url,
@@ -484,7 +484,7 @@ app.post('/api/fetch', async (req, res) => {
         if (fetchDetails && (!exists || !exists.detail_fetched)) {
           try {
             await sleep(200);
-            const d = mapDetail(await fetchEWBDetail(ewbToken, apiKey, ewbNo, ewb.docType || 'INV'), ewbNo);
+            const d = mapDetail(await fetchEWBDetail(ewbToken, apiKey, ewbNo), ewbNo);
             await pool.query(`
               UPDATE ewbs SET
                 invoice_date     = $1,  from_party       = $2,  from_gstin       = $3,
