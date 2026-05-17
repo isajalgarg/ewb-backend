@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAIL · EWB Live MIS</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F0EDE8;--surface:#FAFAF7;--surface2:#ECEAE5;--border:#D5D0C8;--border2:#BFB9AF;
+  --text:#18170F;--text2:#52504A;--text3:#8C8980;
+  --green:#1A5C3A;--green-bg:#E6F4EC;--green-border:#A8D4B8;
+  --blue:#1C3F7A;--blue-bg:#E8EFF8;--blue-border:#A8C0E4;
+  --amber:#8A5C00;--amber-bg:#FBF0DC;--amber-border:#E8C870;
+  --red:#A02020;--red-bg:#FAEAEA;--red-border:#E8A8A8;
+  --purple:#4C2A8C;--purple-bg:#EEE8F8;
+  --accent:#1A5C3A;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  --r:6px;--rl:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;line-height:1.5}
+a{color:inherit;text-decoration:none}
+
+/* ── SHELL ── */
+.shell{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:210px;flex-shrink:0;background:#131A12;display:flex;flex-direction:column}
+.sb-logo{padding:18px 16px 12px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sb-logo .eyebrow{font-size:10px;font-weight:600;color:rgba(255,255,255,0.35);letter-spacing:.14em;text-transform:uppercase}
+.sb-logo .name{font-size:16px;font-weight:600;color:#fff;margin-top:2px;letter-spacing:-.01em}
+.sb-logo .sub{font-size:11px;color:rgba(255,255,255,0.4);margin-top:1px}
+.sb-nav{flex:1;padding:8px}
+.sb-section{font-size:10px;font-weight:600;color:rgba(255,255,255,0.25);letter-spacing:.1em;text-transform:uppercase;padding:10px 8px 4px}
+.sb-item{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--r);cursor:pointer;color:rgba(255,255,255,0.55);font-size:12.5px;font-weight:400;margin-bottom:1px;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.sb-item:hover{background:rgba(255,255,255,0.08);color:rgba(255,255,255,.9)}
+.sb-item.active{background:rgba(255,255,255,0.12);color:#fff;font-weight:500}
+.sb-item svg{width:15px;height:15px;flex-shrink:0}
+.sb-footer{padding:12px 14px;border-top:1px solid rgba(255,255,255,0.08)}
+.sb-stat{font-size:11px;color:rgba(255,255,255,0.35)}
+.sb-stat strong{display:block;font-size:13px;color:rgba(255,255,255,0.8);font-weight:500;margin-bottom:2px}
+.sb-badge{display:inline-block;background:rgba(255,165,0,0.2);color:#FFBB44;font-size:10px;font-weight:600;padding:2px 7px;border-radius:100px;margin-top:4px}
+
+/* ── MAIN ── */
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:50}
+.tb-left h1{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.tb-left p{font-size:11px;color:var(--text3);margin-top:1px}
+.tb-right{display:flex;gap:7px;align-items:center}
+
+/* ── PAGES ── */
+.page{padding:18px 22px;display:none}
+.page.active{display:block}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 13px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:12px;font-family:var(--font);cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-weight:500;transition:all .15s;line-height:1}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--green);color:#fff;border-color:var(--green)}
+.btn.primary:hover{background:#144A2E}
+.btn.blue{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn.blue:hover{background:#162F5C}
+.btn.sm{padding:5px 11px;font-size:11px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.loading{opacity:.7;pointer-events:none}
+
+/* ── KPI ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:9px;margin-bottom:16px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:12px 14px}
+.kpi-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
+.kpi-val{font-size:19px;font-weight:600;font-family:var(--mono);line-height:1.1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.kpi.k-green{border-left:3px solid var(--green)}
+.kpi.k-blue{border-left:3px solid var(--blue)}
+.kpi.k-amber{border-left:3px solid #D4920A}
+.kpi.k-red{border-left:3px solid var(--red)}
+.kpi.k-purple{border-left:3px solid #6B3FCC}
+.kpi.k-teal{border-left:3px solid #0891B2}
+
+/* ── CARDS ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:14px 16px}
+.card-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+
+/* ── BARS ── */
+.bar-list{display:flex;flex-direction:column;gap:7px}
+.bar-row{display:flex;align-items:center;gap:8px}
+.bar-name{width:110px;font-size:11px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.bar-track{flex:1;background:var(--surface2);border-radius:3px;height:11px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.bar-num{font-size:11px;font-family:var(--mono);color:var(--text3);min-width:68px;text-align:right;flex-shrink:0}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:12px}
+table.tbl th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);color:var(--text2);font-weight:600;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap;background:var(--surface2)}
+table.tbl td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl tr:hover td{background:#F5F2EE}
+.mono{font-family:var(--mono);font-size:11px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;font-size:10.5px;font-weight:600;white-space:nowrap}
+.badge.green{background:var(--green-bg);color:#0F3D22;border:1px solid var(--green-border)}
+.badge.amber{background:var(--amber-bg);color:#5A3A00;border:1px solid var(--amber-border)}
+.badge.red{background:var(--red-bg);color:#6E1010;border:1px solid var(--red-border)}
+.badge.blue{background:var(--blue-bg);color:#0F2952;border:1px solid var(--blue-border)}
+.badge.gray{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.badge.purple{background:var(--purple-bg);color:#2E1060}
+
+/* ── FILTERS ── */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 14px;background:var(--surface2);border-radius:var(--rl);margin-bottom:12px;border:1px solid var(--border)}
+.filter-bar select,.filter-bar input[type=text]{padding:5px 9px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:12px;font-family:var(--font)}
+.filter-label{font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em}
+
+/* ── FETCH PANEL ── */
+.fetch-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--rl);padding:16px;margin-bottom:16px}
+.fetch-panel h2{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.fetch-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.fetch-field{display:flex;flex-direction:column;gap:4px}
+.fetch-field label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.fetch-field input,.fetch-field select{padding:7px 10px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px;font-family:var(--font);min-width:160px}
+
+/* ── CONFIG PANEL ── */
+.config-panel{background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--rl);padding:16px;margin-bottom:14px}
+.config-panel h2{font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.config-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.cf{display:flex;flex-direction:column;gap:4px}
+.cf label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.cf input,.cf select{padding:7px 10px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px;font-family:var(--font);width:100%}
+.cf input:focus,.cf select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 2px rgba(28,63,122,.1)}
+.cf input[type=password]{font-family:var(--mono);letter-spacing:.1em}
+
+/* ── EWB / OPS SECTIONS ── */
+.ewb-section{background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--rl);padding:14px 16px;margin-bottom:10px}
+.ewb-title{font-size:10px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.ops-section{background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--rl);padding:14px 16px}
+.ops-title{font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:10px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:10.5px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.field input,.field select,.field textarea{padding:7px 10px;border-radius:var(--r);border:1px solid var(--border2);background:var(--surface);color:var(--text);font-size:13px;font-family:var(--font);width:100%}
+.field input:focus,.field select:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 2px rgba(26,92,58,.1)}
+.field input[readonly]{background:var(--surface2);color:var(--text2);cursor:default}
+.lock-wrap{position:relative}
+.lock-tag{position:absolute;right:7px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:700;color:var(--blue);background:var(--blue-bg);padding:1px 5px;border-radius:3px;border:1px solid var(--blue-border)}
+.field .hint{font-size:10px;color:var(--text3)}
+
+/* ── PROGRESS ── */
+.prog-bar{background:var(--surface2);border-radius:3px;height:7px;overflow:hidden;margin-top:5px}
+.prog-fill{height:100%;border-radius:3px;background:var(--green);transition:width .4s}
+
+/* ── ALERTS ── */
+.alert{padding:10px 13px;border-radius:var(--r);font-size:12px;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.alert.info{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-border)}
+.alert.success{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.alert.warn{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.alert.error{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border)}
+
+/* ── STATUS SELECT ── */
+.ss{padding:3px 7px;border-radius:4px;border:1px solid var(--border2);font-size:11px;font-family:var(--font);background:var(--surface);color:var(--text)}
+
+/* ── COMPLETION RINGS ── */
+.comp-row{display:flex;flex-direction:column;gap:9px}
+.comp-item{display:flex;flex-direction:column;gap:3px}
+.comp-header{display:flex;justify-content:space-between;font-size:11.5px}
+.comp-header span:last-child{font-family:var(--mono);color:var(--text3);font-size:11px}
+
+/* ── TOKEN STATUS ── */
+.token-status{display:flex;align-items:center;gap:6px;font-size:11px;padding:6px 10px;border-radius:var(--r);background:var(--surface2);border:1px solid var(--border)}
+.token-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.token-dot.ok{background:#2EAE6A;animation:pulse-g 2s infinite}
+.token-dot.warn{background:#E8A020}
+.token-dot.none{background:var(--border2)}
+@keyframes pulse-g{0%,100%{box-shadow:0 0 0 0 rgba(46,174,106,.4)}50%{box-shadow:0 0 0 4px rgba(46,174,106,0)}}
+
+/* ── SPINNER ── */
+.spinner{width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
+.spinner.dark{border-color:rgba(0,0,0,.15);border-top-color:var(--text2)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── FETCH LOG ── */
+.fetch-log{background:#0D1A0E;border-radius:var(--rl);padding:12px 14px;font-family:var(--mono);font-size:11px;color:#7EC87E;max-height:140px;overflow-y:auto;margin-top:10px;line-height:1.8}
+.fetch-log .log-err{color:#E87E7E}
+.fetch-log .log-warn{color:#E8C87E}
+.fetch-log .log-info{color:#7EC8E8}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:7px}
+.t-item{padding:9px 15px;border-radius:var(--r);font-size:12.5px;font-weight:500;color:#fff;box-shadow:0 4px 16px rgba(0,0,0,.2);animation:slideUp .2s ease;display:flex;align-items:center;gap:8px}
+.t-item.ok{background:#1A5C3A}
+.t-item.warn{background:#8A5C00}
+.t-item.err{background:#A02020}
+@keyframes slideUp{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ── DIVIDER ── */
+.div{height:1px;background:var(--border);margin:14px 0}
+
+/* ── PENDING BADGE ── */
+.pulse-dot{width:7px;height:7px;border-radius:50%;background:var(--red);display:inline-block;margin-right:5px;animation:pdot 1.4s infinite}
+@keyframes pdot{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ══ SIDEBAR ══ -->
+<div class="sidebar">
+  <div class="sb-logo">
+    <div class="eyebrow">SAIL · GST</div>
+    <div class="name">EWB Live MIS</div>
+    <div class="sub">Sandbox.co.in API</div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-section">Analytics</div>
+    <button class="sb-item active" onclick="nav('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Dashboard
+    </button>
+    <button class="sb-item" onclick="nav('vehicles',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      Vehicle Tracker
+    </button>
+    <button class="sb-item" onclick="nav('party',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      Party Analysis
+    </button>
+    <div class="sb-section">Operations</div>
+    <button class="sb-item" onclick="nav('entry',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      Ops Entry
+      <span id="sb-pending-badge"></span>
+    </button>
+    <button class="sb-item" onclick="nav('records',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      All Records
+    </button>
+    <div class="sb-section">API</div>
+    <button class="sb-item" onclick="nav('fetch',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      Fetch EWBs
+    </button>
+    <button class="sb-item" onclick="nav('config',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M12 2v2M12 20v2M2 12h2M20 12h2M19.07 19.07l-1.41-1.41M4.93 19.07l1.41-1.41"/></svg>
+      API Config
+    </button>
+  </div>
+  <div class="sb-footer">
+    <div class="sb-stat">
+      <strong id="sb-count">0 EWBs</strong>
+      <span id="sb-last-fetch">Not fetched yet</span>
+    </div>
+    <div id="sb-token-wrap" style="margin-top:8px">
+      <div class="token-status"><div class="token-dot none" id="tok-dot"></div><span id="tok-label">No token</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN ══ -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-left">
+      <h1 id="tb-title">MIS Dashboard</h1>
+      <p id="tb-sub">Live data from GST EWB portal via sandbox.co.in</p>
+    </div>
+    <div class="tb-right">
+      <button class="btn sm" onclick="exportCSV()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export CSV
+      </button>
+      <button class="btn sm blue" onclick="nav('fetch',document.querySelectorAll('.sb-item')[5])">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Refresh EWBs
+      </button>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="page active" id="page-dashboard">
+    <div class="kpi-grid" id="kpi-row"></div>
+    <div class="filter-bar">
+      <span class="filter-label">Filter:</span>
+      <select id="d-party" onchange="renderDash()"><option value="">All Parties</option></select>
+      <select id="d-dest" onchange="renderDash()"><option value="">All Destinations</option></select>
+      <select id="d-mat" onchange="renderDash()"><option value="">All Materials</option></select>
+      <select id="d-vstatus" onchange="renderDash()">
+        <option value="">All V.Status</option>
+        <option>REACHED</option><option>IN TRANSIT</option><option>PENDING</option>
+      </select>
+      <select id="d-ewbstatus" onchange="renderDash()">
+        <option value="">All EWB Status</option>
+        <option value="ACT">Active</option><option value="CNL">Cancelled</option>
+      </select>
+      <button class="btn sm" onclick="resetDashFilters()">Reset</button>
+    </div>
+    <div class="kpi-grid" id="kpi-row"></div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">Invoice value by party</div><div class="bar-list" id="bar-party"></div></div>
+      <div class="card"><div class="card-title">Invoice value by destination</div><div class="bar-list" id="bar-dest"></div></div>
+    </div>
+    <div class="grid3">
+      <div class="card"><div class="card-title">Material mix</div><div id="mat-donut"></div></div>
+      <div class="card"><div class="card-title">Ops completion</div><div class="comp-row" id="ops-comp"></div></div>
+      <div class="card"><div class="card-title">EWB status</div><div class="bar-list" id="bar-ewb-status"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Recent EWBs <span id="dash-count" style="font-size:11px;color:var(--text3);font-weight:400"></span></div>
+      <div class="tbl-wrap"><table class="tbl" id="dash-tbl"></table></div>
+    </div>
+  </div>
+
+  <!-- ── VEHICLES ── -->
+  <div class="page" id="page-vehicles">
+    <div class="filter-bar">
+      <input type="text" id="v-search" placeholder="Vehicle no / EWB no / invoice…" oninput="renderVehicles()" style="width:230px">
+      <select id="v-vstatus" onchange="renderVehicles()"><option value="">All Status</option><option>REACHED</option><option>IN TRANSIT</option><option>PENDING</option></select>
+    </div>
+    <div class="grid3" id="v-kpis"></div>
+    <div class="card" style="padding:0"><div class="tbl-wrap"><table class="tbl" id="v-tbl"></table></div></div>
+  </div>
+
+  <!-- ── PARTY ── -->
+  <div class="page" id="page-party">
+    <div class="card" style="margin-bottom:12px"><div class="card-title">Party-wise summary</div><div class="tbl-wrap"><table class="tbl" id="party-tbl"></table></div></div>
+    <div class="grid2">
+      <div class="card"><div class="card-title">By value</div><div class="bar-list" id="party-bar"></div></div>
+      <div class="card"><div class="card-title">Destination quantity</div><div class="bar-list" id="dest-bar"></div></div>
+    </div>
+  </div>
+
+  <!-- ── OPS ENTRY ── -->
+  <div class="page" id="page-entry">
+    <div class="alert info" style="margin-bottom:12px">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      EWB fields are pulled live from the GST portal and are read-only. Fill only the Operations section below.
+    </div>
+    <div style="display:flex;gap:9px;margin-bottom:12px;align-items:center">
+      <select id="entry-sel" style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid var(--border2);font-family:var(--font);font-size:13px" onchange="loadEntry()">
+        <option value="">— Select EWB / Invoice to update —</option>
+      </select>
+      <button class="btn sm" onclick="nextPending()"><span class="pulse-dot"></span>Next pending</button>
+    </div>
+    <div id="entry-wrap" style="display:none">
+      <div class="ewb-section">
+        <div class="ewb-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          EWB Master — from GST Portal (locked)
+        </div>
+        <div class="form-grid" id="ewb-locked"></div>
+      </div>
+      <div style="height:10px"></div>
+      <div class="ops-section">
+        <div class="ops-title">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Operations Entry
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Rate (₹/MT)</label><input type="number" id="op-rate" placeholder="e.g. 201" oninput="calcOps()"></div>
+          <div class="field"><label>Amount (₹)</label><input type="number" id="op-amt" readonly><span class="hint">Qty × Rate</span></div>
+          <div class="field"><label>IGST (₹)</label><input type="number" id="op-igst" placeholder="Auto 18%" oninput="calcIval()"><span class="hint">Override if needed</span></div>
+          <div class="field"><label>Invoice Value (₹)</label><input type="number" id="op-ival" readonly><span class="hint">Amount + IGST</span></div>
+          <div class="field"><label>Vehicle Status</label>
+            <select id="op-vs"><option>PENDING</option><option>IN TRANSIT</option><option>REACHED</option></select>
+          </div>
+          <div class="field"><label>Reached Date</label><input type="date" id="op-rd"></div>
+          <div class="field"><label>Unloading Status</label>
+            <select id="op-uls"><option>PENDING</option><option>IN PROGRESS</option><option>DONE</option></select>
+          </div>
+          <div class="field"><label>Unloading Date</label><input type="date" id="op-uld"></div>
+          <div class="field" style="grid-column:1/-1"><label>Remarks</label>
+            <textarea id="op-rem" rows="2" style="padding:7px 10px;border-radius:6px;border:1px solid var(--border2);font-size:13px;font-family:var(--font);background:var(--surface);color:var(--text);resize:vertical;width:100%"></textarea>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+          <button class="btn primary" onclick="saveEntry()">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            Save
+          </button>
+          <button class="btn" onclick="saveEntry(true)">Save & Next</button>
+          <span id="entry-msg" style="font-size:12px;color:var(--green);margin-left:4px"></span>
+        </div>
+      </div>
+    </div>
+    <div id="entry-empty" style="text-align:center;padding:48px;color:var(--text3)">
+      <div style="font-size:36px;margin-bottom:10px">📋</div>
+      <div style="font-size:14px;font-weight:500;margin-bottom:4px">No EWB selected</div>
+      <div>Fetch EWBs first, then select one above to enter ops data</div>
+    </div>
+  </div>
+
+  <!-- ── ALL RECORDS ── -->
+  <div class="page" id="page-records">
+    <div class="filter-bar">
+      <input type="text" id="r-q" placeholder="Search EWB / invoice / vehicle / party…" oninput="renderRecords()" style="width:240px">
+      <select id="r-party" onchange="renderRecords()"><option value="">All Parties</option></select>
+      <select id="r-vs" onchange="renderRecords()"><option value="">All V.Status</option><option>REACHED</option><option>IN TRANSIT</option><option>PENDING</option></select>
+      <select id="r-uls" onchange="renderRecords()"><option value="">All Unload</option><option>DONE</option><option>IN PROGRESS</option><option>PENDING</option></select>
+      <span id="r-count" style="font-size:11px;color:var(--text3)"></span>
+    </div>
+    <div class="card" style="padding:0"><div class="tbl-wrap"><table class="tbl" id="rec-tbl"></table></div></div>
+  </div>
+
+  <!-- ── FETCH EWBs ── -->
+  <div class="page" id="page-fetch">
+    <div class="fetch-panel">
+      <h2>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        Fetch EWBs by Date Range
+      </h2>
+      <div class="fetch-row">
+        <div class="fetch-field"><label>From Date</label><input type="date" id="f-from"></div>
+        <div class="fetch-field"><label>To Date</label><input type="date" id="f-to"></div>
+        <div class="fetch-field"><label>EWB Type</label>
+          <select id="f-type">
+            <option value="outward">Outward (Generated by me)</option>
+            <option value="inward">Inward (Generated by others)</option>
+          </select>
+        </div>
+        <button class="btn blue" id="fetch-btn" onclick="fetchEWBs()" style="align-self:flex-end">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+          Fetch from API
+        </button>
+        <button class="btn" onclick="authenticate()" id="auth-btn" style="align-self:flex-end">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Get Token
+        </button>
+      </div>
+      <div id="fetch-log" class="fetch-log" style="display:none"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-title">Fetch progress</div>
+        <div id="fetch-progress">
+          <div style="font-size:12px;color:var(--text3);padding:8px 0">No fetch in progress</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Session summary</div>
+        <div id="fetch-summary">
+          <div style="font-size:12px;color:var(--text3);padding:8px 0">No data fetched yet</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">How this works</div>
+      <div style="font-size:12px;color:var(--text2);line-height:1.8">
+        <strong>Step 1 — Sandbox JWT:</strong> Backend calls <span class="mono" style="background:var(--surface2);padding:1px 5px;border-radius:3px">POST /authenticate</span> with x-api-key + x-api-secret to get a Sandbox JWT.<br>
+        <strong>Step 2 — EWB Token:</strong> Backend calls <span class="mono" style="background:var(--surface2);padding:1px 5px;border-radius:3px">POST /gst/compliance/e-way-bill/tax-payer/authenticate</span> with GSTIN + EWB credentials to get EWB portal token.<br>
+        <strong>Step 3 — List EWBs:</strong> Backend calls <span class="mono" style="background:var(--surface2);padding:1px 5px;border-radius:3px">GET /consignor/bills?generated_date={date}</span> for each date in range.<br>
+        <strong>Step 4 — Full Detail:</strong> For each new EWB, backend calls <span class="mono" style="background:var(--surface2);padding:1px 5px;border-radius:3px">GET /consignor/bill/{ewbNo}</span>. Existing EWBs preserve your ops data.
+        <br><span style="color:var(--text3)">All API calls happen server-side. Your credentials never leave the server.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── API CONFIG ── -->
+  <div class="page" id="page-config">
+    <div class="config-panel">
+      <h2>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        API Credentials — stored securely on server, never exposed to browser
+      </h2>
+      <div class="config-grid">
+        <div class="cf"><label>x-api-key</label><input type="password" id="cfg-key" placeholder="Your sandbox API key"></div>
+        <div class="cf"><label>x-api-secret</label><input type="password" id="cfg-secret" placeholder="Your sandbox API secret"></div>
+        <div class="cf"><label>GSTIN</label><input type="text" id="cfg-gstin" placeholder="29AAACQ3770E000" style="text-transform:uppercase"></div>
+        <div class="cf"><label>EWB Username (portal)</label><input type="text" id="cfg-user" placeholder="Portal API username"></div>
+        <div class="cf"><label>EWB Password (portal)</label><input type="password" id="cfg-pass" placeholder="Portal API password"></div>
+        <div class="cf"><label>Backend URL</label><input type="text" id="cfg-backend" placeholder="https://app.indianmetaltrading.com" value="https://app.indianmetaltrading.com"></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <button class="btn primary" onclick="saveConfig()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Save Config
+        </button>
+        <button class="btn" onclick="authenticate()">Test — Get Auth Token</button>
+        <span id="cfg-msg" style="font-size:12px;color:var(--green);margin-left:4px"></span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Current token info</div>
+      <div id="token-info" style="font-size:12px;color:var(--text2);line-height:1.9;font-family:var(--mono)">No token yet. Click "Get Auth Token" above.</div>
+    </div>
+    <div class="div"></div>
+    <div class="card">
+      <div class="card-title">Data management</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn" onclick="exportCSV()">Export all as CSV</button>
+        <button class="btn" onclick="clearOps()">Clear ops data only</button>
+        <button class="btn" style="color:var(--red);border-color:var(--red-border)" onclick="clearAll()">Clear all data</button>
+        <span style="font-size:11px;color:var(--text3)" id="data-count-label"></span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+<div id="toast"></div>
+
+<script>
+// ══ STATE ══
+let DB = [];
+let TOKEN_EXP = 0;
+let BACKEND = localStorage.getItem('ewb_backend_url') || 'https://app.indianmetaltrading.com';
+
+// ══ API HELPER ══
+async function api(path, opts={}) {
+  const r = await fetch(BACKEND + path, {
+    headers: {'Content-Type':'application/json'},
+    ...opts
+  });
+  return r.json();
+}
+
+// ══ LOAD DB FROM BACKEND ══
+async function loadDB() {
+  try {
+    const d = await api('/api/ewbs');
+    DB = (d.data || []).map(r => ({
+      ...r,
+      _id: r.id,
+      _ops_done: r.ops_done,
+      tot_inv_value: r.total_inv_value,
+    }));
+    updateSidebar();
+    populateSelects();
+  } catch(e) {
+    console.error('loadDB error:', e);
+    toast('Could not load data from backend', 'err');
+  }
+}
+
+// ══ PERSIST (no-op — data lives on backend) ══
+function persist() { updateSidebar(); }
+
+// ══ CONFIG ══
+async function saveConfig() {
+  const backendUrl = document.getElementById('cfg-backend').value.trim().replace(/\/$/, '');
+  BACKEND = backendUrl;
+  localStorage.setItem('ewb_backend_url', BACKEND);
+
+  const body = {
+    apiKey:      document.getElementById('cfg-key').value.trim(),
+    apiSecret:   document.getElementById('cfg-secret').value.trim(),
+    ewbUsername: document.getElementById('cfg-user').value.trim(),
+    ewbPassword: document.getElementById('cfg-pass').value.trim(),
+    gstin:       document.getElementById('cfg-gstin').value.trim().toUpperCase(),
+  };
+  if (!body.apiKey || !body.apiSecret || !body.ewbUsername || !body.ewbPassword || !body.gstin) {
+    document.getElementById('cfg-msg').textContent = '✗ All fields required';
+    document.getElementById('cfg-msg').style.color = 'var(--red)';
+    return;
+  }
+  try {
+    const r = await api('/api/config', { method:'POST', body: JSON.stringify(body) });
+    if (r.ok) {
+      document.getElementById('cfg-msg').textContent = '✓ Saved to server';
+      document.getElementById('cfg-msg').style.color = 'var(--green)';
+      toast('Config saved');
+      document.getElementById('data-count-label').textContent = DB.length + ' records in DB';
+    } else {
+      throw new Error(r.error || 'Save failed');
+    }
+  } catch(e) {
+    document.getElementById('cfg-msg').textContent = '✗ ' + e.message;
+    document.getElementById('cfg-msg').style.color = 'var(--red)';
+    toast('Config save failed: ' + e.message, 'err');
+  }
+}
+
+async function loadConfigUI() {
+  try {
+    document.getElementById('cfg-backend').value = BACKEND;
+    const d = await api('/api/config');
+    if (d.ewbUsername) document.getElementById('cfg-user').placeholder = d.ewbUsername + ' (saved on server)';
+    if (d.gstin)       document.getElementById('cfg-gstin').placeholder = d.gstin + ' (saved on server)';
+    if (d.configured)  document.getElementById('cfg-msg').textContent = '✓ Credentials configured on server';
+  } catch(e) {}
+}
+
+// ══ AUTH ══
+async function authenticate() {
+  const btn = document.getElementById('auth-btn');
+  btn.innerHTML = '<div class="spinner"></div> Authenticating…'; btn.disabled = true;
+  log('info', 'Authenticating with EWB portal via backend…');
+  try {
+    const r = await api('/api/auth', { method:'POST' });
+    if (r.ok) {
+      TOKEN_EXP = r.expiry ? new Date(r.expiry).getTime() : Date.now() + 6*3600*1000;
+      updateTokenStatus();
+      document.getElementById('token-info').innerHTML =
+        'Token: ' + (r.token_preview||'obtained') + '<br>Expires: ' + (r.expiry ? new Date(r.expiry).toLocaleString('en-IN') : '—');
+      log('info', '✓ Token obtained. Expiry: ' + (r.expiry || '6h'));
+      toast('Authentication successful');
+      document.getElementById('cfg-msg').textContent = '✓ Token obtained';
+    } else {
+      throw new Error(r.error || 'Auth failed');
+    }
+  } catch(e) {
+    log('err', 'Auth failed: ' + e.message);
+    toast('Auth failed: ' + e.message, 'err');
+  } finally {
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Get Token';
+    btn.disabled = false;
+  }
+}
+
+async function updateTokenStatus() {
+  const dot = document.getElementById('tok-dot');
+  const lbl = document.getElementById('tok-label');
+  try {
+    const d = await api('/api/auth/status');
+    if (d.authenticated) {
+      TOKEN_EXP = new Date(d.expiry).getTime();
+      const hrs = Math.floor(d.remaining_ms/3600000);
+      const mins = Math.floor((d.remaining_ms%3600000)/60000);
+      dot.className = 'token-dot ok';
+      lbl.textContent = `Token valid ${hrs}h ${mins}m`;
+    } else {
+      dot.className = 'token-dot warn';
+      lbl.textContent = 'Not authenticated';
+    }
+  } catch(e) {
+    dot.className = 'token-dot none';
+    lbl.textContent = 'Backend offline';
+  }
+}
+
+// ══ FETCH EWBs ══
+async function fetchEWBs() {
+  const fromDate = document.getElementById('f-from').value;
+  const toDate   = document.getElementById('f-to').value;
+  if (!fromDate || !toDate) { toast('Select date range', 'warn'); return; }
+
+  const btn = document.getElementById('fetch-btn');
+  btn.innerHTML = '<div class="spinner"></div> Fetching…'; btn.disabled = true;
+  showFetchLog();
+  log('info', `Fetching EWBs from ${fromDate} to ${toDate}…`);
+  updateFetchProgress(0, 1);
+
+  try {
+    const res = await fetch(BACKEND + '/api/fetch', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ dateFrom: fromDate, dateTo: toDate, fetchDetails: true })
+    });
+
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '', added = 0, updated = 0, found = 0, failed = 0;
+
+    while (true) {
+      const {done, value} = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, {stream:true});
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue;
+        const d = JSON.parse(line.slice(5).trim());
+        if (d.type === 'log') {
+          const cls = d.level==='error'?'err':d.level==='warn'?'warn':'info';
+          log(cls, d.msg);
+        } else if (d.type === 'progress') {
+          updateFetchProgress(d.done, d.total);
+        } else if (d.type === 'done') {
+          added   = d.stats.added;
+          updated = d.stats.updated;
+          found   = d.stats.found;
+          failed  = d.stats.failed;
+          const summary = `✓ Done. Added: ${added}, Updated: ${updated}, Failed: ${failed}`;
+          log('info', summary);
+          toast(summary);
+          document.getElementById('fetch-summary').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+              <div><span style="color:var(--text3)">Total EWBs found</span><br><strong>${found}</strong></div>
+              <div><span style="color:var(--text3)">Newly added</span><br><strong style="color:var(--green)">${added}</strong></div>
+              <div><span style="color:var(--text3)">Updated existing</span><br><strong style="color:var(--blue)">${updated}</strong></div>
+              <div><span style="color:var(--text3)">Failed</span><br><strong style="color:var(--red)">${failed}</strong></div>
+            </div>
+            <div style="margin-top:8px;font-size:11px;color:var(--text3)">Fetched at ${new Date().toLocaleString('en-IN')}</div>`;
+          document.getElementById('sb-last-fetch').textContent = 'Last: ' + new Date().toLocaleTimeString('en-IN');
+          // Reload DB from backend
+          await loadDB();
+          refreshAll();
+        } else if (d.type === 'error') {
+          log('err', d.msg);
+          toast('Fetch error: ' + d.msg, 'err');
+        }
+      }
+    }
+  } catch(e) {
+    log('err', 'Fetch error: ' + e.message);
+    toast('Fetch error: ' + e.message, 'err');
+  } finally {
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg> Fetch from API';
+    btn.disabled = false;
+  }
+}
+
+// ══ HELPERS ══
+function getDatesInRange(from, to) {
+  const dates = [], cur = new Date(from), end = new Date(to);
+  while (cur <= end) { dates.push(cur.toISOString().split('T')[0]); cur.setDate(cur.getDate()+1); }
+  return dates;
+}
+function formatDateForAPI(isoDate) {
+  // sandbox API expects DD/MM/YYYY
+  const [y,m,d] = isoDate.split('-'); return `${d}/${m}/${y}`;
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function fmt(n) { return Math.round(+n||0).toLocaleString('en-IN'); }
+function fmtCr(n) { n=+n||0; return n>=1e7?'₹'+(n/1e7).toFixed(2)+'Cr':'₹'+Math.round(n).toLocaleString('en-IN'); }
+
+// ══ LOG / PROGRESS ══
+function showFetchLog() {
+  const el = document.getElementById('fetch-log');
+  el.style.display = 'block'; el.innerHTML = '';
+}
+function log(type, msg) {
+  const el = document.getElementById('fetch-log');
+  if (!el) return;
+  const cls = type==='err'?'log-err':type==='warn'?'log-warn':'log-info';
+  el.innerHTML += `<div class="${cls}">[${new Date().toLocaleTimeString('en-IN')}] ${msg}</div>`;
+  el.scrollTop = el.scrollHeight;
+}
+function updateFetchProgress(done, total) {
+  const pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('fetch-progress').innerHTML = `
+    <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Fetching details: ${done} / ${total}</div>
+    <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px">${pct}% complete</div>
+  `;
+}
+
+// ══ SIDEBAR ══
+function updateSidebar() {
+  document.getElementById('sb-count').textContent = DB.length + ' EWBs';
+  const pending = DB.filter(r=>!r._ops_done).length;
+  const badge = document.getElementById('sb-pending-badge');
+  badge.innerHTML = pending > 0 ? `<span class="sb-badge">${pending}</span>` : '';
+}
+
+// ══ SELECTS ══
+function populateSelects() {
+  const parties = [...new Set(DB.map(r=>r.to_party||r.from_party).filter(Boolean))].sort();
+  const dests = [...new Set(DB.map(r=>r.to_place).filter(Boolean))].sort();
+  const mats = [...new Set(DB.map(r=>r.material).filter(Boolean))].sort();
+  const setOpts = (id, vals, first='') => {
+    const el = document.getElementById(id); if (!el) return;
+    const cur = el.value, f = el.options[0].outerHTML;
+    el.innerHTML = f + vals.map(v=>`<option>${v}</option>`).join('');
+    el.value = cur;
+  };
+  setOpts('d-party', parties); setOpts('d-dest', dests); setOpts('d-mat', mats);
+  setOpts('r-party', parties);
+  // entry select
+  const es = document.getElementById('entry-sel');
+  if (!es) return;
+  const cur = es.value;
+  es.innerHTML = '<option value="">— Select EWB / Invoice to update —</option>' +
+    DB.map(r=>`<option value="${r._id}">${r._ops_done?'✓ ':''} ${r.invoice_no||r.ewb_no} — ${r.to_party||r.from_party||'—'} (${r.to_place||'—'})</option>`).join('');
+  es.value = cur;
+}
+
+// ══ DASH FILTERS ══
+function dashFiltered() {
+  const p = document.getElementById('d-party')?.value||'';
+  const d = document.getElementById('d-dest')?.value||'';
+  const m = document.getElementById('d-mat')?.value||'';
+  const vs = document.getElementById('d-vstatus')?.value||'';
+  const es = document.getElementById('d-ewbstatus')?.value||'';
+  return DB.filter(r=>(
+    (!p||r.to_party===p||r.from_party===p)&&
+    (!d||r.to_place===d)&&(!m||r.material===m)&&
+    (!vs||r.vstatus===vs)&&(!es||r.ewb_status===es)
+  ));
+}
+function resetDashFilters() {
+  ['d-party','d-dest','d-mat','d-vstatus','d-ewbstatus'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  renderDash();
+}
+
+// ══ RENDER DASH ══
+function renderDash() {
+  const rows = dashFiltered();
+  const totalVal = rows.reduce((s,r)=>s+(+r.invoice_value||+r.tot_inv_value||+r.taxable_amt||0),0);
+  const totalQty = rows.reduce((s,r)=>s+(+r.quantity||0),0);
+  const totalIgst = rows.reduce((s,r)=>s+(+r.igst_entered||+r.igst_amt||0),0);
+  const reached = rows.filter(r=>r.vstatus==='REACHED').length;
+  const opsDone = rows.filter(r=>r._ops_done).length;
+  const active = rows.filter(r=>r.ewb_status==='ACT').length;
+
+  document.getElementById('kpi-row').innerHTML = `
+    <div class="kpi k-blue"><div class="kpi-label">Invoice Value</div><div class="kpi-val">${fmtCr(totalVal)}</div><div class="kpi-sub">${rows.length} EWBs</div></div>
+    <div class="kpi k-green"><div class="kpi-label">Quantity (MT)</div><div class="kpi-val">${fmt(totalQty)}</div></div>
+    <div class="kpi k-amber"><div class="kpi-label">IGST</div><div class="kpi-val">${fmtCr(totalIgst)}</div></div>
+    <div class="kpi k-green"><div class="kpi-label">Vehicles Reached</div><div class="kpi-val">${reached}/${rows.length}</div></div>
+    <div class="kpi k-teal"><div class="kpi-label">Ops Done</div><div class="kpi-val">${opsDone}/${rows.length}</div><div class="prog-bar" style="margin-top:6px"><div class="prog-fill" style="width:${rows.length?Math.round(opsDone/rows.length*100):0}%"></div></div></div>
+    <div class="kpi k-purple"><div class="kpi-label">Active EWBs</div><div class="kpi-val">${active}</div><div class="kpi-sub">${rows.length-active} cancelled</div></div>
+  `;
+  document.getElementById('dash-count').textContent = rows.length + ' records';
+  renderBarGroup('bar-party', rows, r=>r.to_party||r.from_party, r=>(+r.invoice_value||+r.tot_inv_value||+r.taxable_amt||0), '#1A5C3A');
+  renderBarGroup('bar-dest', rows, r=>r.to_place, r=>(+r.invoice_value||+r.tot_inv_value||+r.taxable_amt||0), '#1C3F7A');
+  renderEwbStatusBars(rows);
+  renderMatDonut(rows);
+  renderOpsComp(rows);
+  renderDashTable(rows.slice(0,12));
+}
+
+const COLORS = ['#1A5C3A','#1C3F7A','#C4420E','#8A5C00','#4C2A8C','#0891B2'];
+function renderBarGroup(id, rows, kf, vf, color) {
+  const agg={};
+  rows.forEach(r=>{const k=kf(r)||'—';agg[k]=(agg[k]||0)+vf(r);});
+  const sorted=Object.entries(agg).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const max=sorted[0]?.[1]||1;
+  document.getElementById(id).innerHTML = sorted.map(([k,v])=>`
+    <div class="bar-row">
+      <div class="bar-name" title="${k}">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/max*100).toFixed(1)}%;background:${color}"></div></div>
+      <div class="bar-num">${fmtCr(v)}</div>
+    </div>`).join('');
+}
+function renderEwbStatusBars(rows) {
+  const agg={ACT:0,CNL:0};
+  rows.forEach(r=>{const s=r.ewb_status||'ACT';agg[s]=(agg[s]||0)+1;});
+  const total=rows.length||1;
+  const colors={ACT:'#1A5C3A',CNL:'#A02020'};
+  document.getElementById('bar-ewb-status').innerHTML = Object.entries(agg).map(([k,v])=>`
+    <div class="bar-row">
+      <div class="bar-name">${k==='ACT'?'Active':'Cancelled'}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(v/total*100).toFixed(1)}%;background:${colors[k]||'#888'}"></div></div>
+      <div class="bar-num">${v} (${Math.round(v/total*100)}%)</div>
+    </div>`).join('');
+}
+function renderMatDonut(rows) {
+  const agg={};
+  rows.forEach(r=>{if(r.material)agg[r.material]=(agg[r.material]||0)+(+r.quantity||0);});
+  const entries=Object.entries(agg).sort((a,b)=>b[1]-a[1]);
+  const total=entries.reduce((s,[,v])=>s+v,0)||1;
+  let ang=0; let paths='';
+  entries.forEach(([k,v],i)=>{
+    const a=(v/total)*2*Math.PI;
+    const cx=55,cy=55,ro=44,ri=24;
+    const x1=cx+ro*Math.sin(ang),y1=cy-ro*Math.cos(ang);
+    const x2=cx+ro*Math.sin(ang+a),y2=cy-ro*Math.cos(ang+a);
+    const xi1=cx+ri*Math.sin(ang),yi1=cy-ri*Math.cos(ang);
+    const xi2=cx+ri*Math.sin(ang+a),yi2=cy-ri*Math.cos(ang+a);
+    const lg=a>Math.PI?1:0;
+    paths+=`<path d="M${xi1.toFixed(1)},${yi1.toFixed(1)} L${x1.toFixed(1)},${y1.toFixed(1)} A${ro},${ro} 0 ${lg},1 ${x2.toFixed(1)},${y2.toFixed(1)} L${xi2.toFixed(1)},${yi2.toFixed(1)} A${ri},${ri} 0 ${lg},0 ${xi1.toFixed(1)},${yi1.toFixed(1)}" fill="${COLORS[i%COLORS.length]}"/>`;
+    ang+=a;
+  });
+  document.getElementById('mat-donut').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="110" height="110" viewBox="0 0 110 110" style="flex-shrink:0">${paths||'<circle cx="55" cy="55" r="44" fill="var(--surface2)"/>'}</svg>
+      <div style="display:flex;flex-direction:column;gap:5px;min-width:0;flex:1">
+        ${entries.map(([k,v],i)=>`
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px">
+            <div style="width:9px;height:9px;border-radius:50%;background:${COLORS[i%COLORS.length]};flex-shrink:0"></div>
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${k}</span>
+            <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${fmt(v)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+function renderOpsComp(rows) {
+  const items = [
+    {label:'Rate entered', n:rows.filter(r=>r.rate).length},
+    {label:'Invoice value', n:rows.filter(r=>r.invoice_value).length},
+    {label:'Vehicle reached', n:rows.filter(r=>r.vstatus==='REACHED').length},
+    {label:'Unloading done', n:rows.filter(r=>r.ulstatus==='DONE').length},
+  ];
+  document.getElementById('ops-comp').innerHTML = items.map(({label,n})=>`
+    <div class="comp-item">
+      <div class="comp-header"><span>${label}</span><span>${n}/${rows.length}</span></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${rows.length?Math.round(n/rows.length*100):0}%"></div></div>
+    </div>`).join('');
+}
+function renderDashTable(rows) {
+  document.getElementById('dash-tbl').innerHTML = `
+    <thead><tr><th>EWB No</th><th>Invoice No</th><th>Date</th><th>To Party</th><th>Destination</th><th>Material</th><th>Qty</th><th>Inv.Value</th><th>Vehicle</th><th>EWB</th><th>V.Status</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td class="mono">${r.ewb_no||'—'}</td>
+      <td class="mono">${r.invoice_no||'—'}</td>
+      <td>${r.invoice_date||r.ewb_date||'—'}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.to_party||'—'}</td>
+      <td>${r.to_place||'—'}</td>
+      <td>${r.material||'—'}</td>
+      <td style="text-align:right">${fmt(r.quantity)}</td>
+      <td style="text-align:right;font-weight:500">${r.invoice_value?fmtCr(r.invoice_value):r.taxable_amt?fmtCr(r.taxable_amt):'—'}</td>
+      <td class="mono">${r.vehicle_no||'—'}</td>
+      <td>${ewbBadge(r.ewb_status)}</td>
+      <td>${vsBadge(r.vstatus)}</td>
+    </tr>`).join('')}</tbody>`;
+}
+
+// ══ VEHICLES ══
+function renderVehicles() {
+  const q=(document.getElementById('v-search').value||'').toLowerCase();
+  const vs=document.getElementById('v-vstatus').value;
+  const rows=DB.filter(r=>(!q||(r.vehicle_no+r.ewb_no+r.invoice_no).toLowerCase().includes(q))&&(!vs||r.vstatus===vs));
+  const reached=DB.filter(r=>r.vstatus==='REACHED').length;
+  const transit=DB.filter(r=>r.vstatus==='IN TRANSIT').length;
+  const pending=DB.filter(r=>r.vstatus==='PENDING').length;
+  document.getElementById('v-kpis').innerHTML=`
+    <div class="kpi k-green"><div class="kpi-label">Reached</div><div class="kpi-val">${reached}</div></div>
+    <div class="kpi k-amber"><div class="kpi-label">In Transit</div><div class="kpi-val">${transit}</div></div>
+    <div class="kpi k-red"><div class="kpi-label">Pending</div><div class="kpi-val">${pending}</div></div>`;
+  document.getElementById('v-tbl').innerHTML=`
+    <thead><tr><th>Invoice No</th><th>EWB No</th><th>To Party</th><th>Destination</th><th>Material</th><th>Qty</th><th>Vehicle No</th><th>Valid Upto</th><th>V.Status</th><th>Unload</th><th></th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td class="mono">${r.invoice_no||'—'}</td><td class="mono">${r.ewb_no||'—'}</td>
+      <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.to_party||'—'}</td>
+      <td>${r.to_place||'—'}</td><td>${r.material||'—'}</td>
+      <td style="text-align:right">${fmt(r.quantity)}</td>
+      <td class="mono">${r.vehicle_no||'—'}</td>
+      <td>${r.valid_upto||'—'}</td>
+      <td><select class="ss" onchange="quickUpd('${r._id}','vstatus',this.value)">
+        <option ${r.vstatus==='PENDING'?'selected':''}>PENDING</option>
+        <option ${r.vstatus==='IN TRANSIT'?'selected':''}>IN TRANSIT</option>
+        <option ${r.vstatus==='REACHED'?'selected':''}>REACHED</option>
+      </select></td>
+      <td><select class="ss" onchange="quickUpd('${r._id}','ulstatus',this.value)">
+        <option ${r.ulstatus==='PENDING'?'selected':''}>PENDING</option>
+        <option ${r.ulstatus==='IN PROGRESS'?'selected':''}>IN PROGRESS</option>
+        <option ${r.ulstatus==='DONE'?'selected':''}>DONE</option>
+      </select></td>
+      <td><button class="btn sm" onclick="openEntry('${r._id}')">Edit</button></td>
+    </tr>`).join('')}</tbody>`;
+}
+
+// ══ PARTY ══
+function renderParty() {
+  const agg={};
+  DB.forEach(r=>{const k=r.to_party||r.from_party||'Unknown';if(!agg[k])agg[k]={n:0,qty:0,val:0,reached:0};agg[k].n++;agg[k].qty+=(+r.quantity||0);agg[k].val+=(+r.invoice_value||+r.taxable_amt||0);if(r.vstatus==='REACHED')agg[k].reached++;});
+  const rows=Object.entries(agg).sort((a,b)=>b[1].val-a[1].val);
+  document.getElementById('party-tbl').innerHTML=`
+    <thead><tr><th>Party</th><th>EWBs</th><th>Qty (MT)</th><th>Value</th><th>Reached</th></tr></thead>
+    <tbody>${rows.map(([k,v])=>`<tr>
+      <td style="font-weight:500">${k}</td><td>${v.n}</td>
+      <td style="text-align:right">${fmt(v.qty)}</td>
+      <td style="text-align:right;font-weight:500">${fmtCr(v.val)}</td>
+      <td>${v.reached}/${v.n}</td>
+    </tr>`).join('')}</tbody>`;
+  const max=rows[0]?.[1].val||1;
+  document.getElementById('party-bar').innerHTML=rows.slice(0,6).map(([k,v])=>`
+    <div class="bar-row"><div class="bar-name" title="${k}">${k}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${(v.val/max*100).toFixed(1)}%;background:#1A5C3A"></div></div>
+    <div class="bar-num">${fmtCr(v.val)}</div></div>`).join('');
+  const dagg={};DB.forEach(r=>{const k=r.to_place||'—';dagg[k]=(dagg[k]||0)+(+r.quantity||0);});
+  const drows=Object.entries(dagg).sort((a,b)=>b[1]-a[1]);const dmax=drows[0]?.[1]||1;
+  document.getElementById('dest-bar').innerHTML=drows.map(([k,v])=>`
+    <div class="bar-row"><div class="bar-name">${k}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${(v/dmax*100).toFixed(1)}%;background:#1C3F7A"></div></div>
+    <div class="bar-num">${fmt(v)} MT</div></div>`).join('');
+}
+
+// ══ RECORDS ══
+function renderRecords() {
+  const q=(document.getElementById('r-q').value||'').toLowerCase();
+  const p=document.getElementById('r-party').value;
+  const vs=document.getElementById('r-vs').value;
+  const ul=document.getElementById('r-uls').value;
+  const rows=DB.filter(r=>(
+    (!q||(r.ewb_no+r.invoice_no+(r.vehicle_no||'')+(r.to_party||r.from_party||'')).toLowerCase().includes(q))&&
+    (!p||r.to_party===p||r.from_party===p)&&(!vs||r.vstatus===vs)&&(!ul||r.ulstatus===ul)
+  ));
+  document.getElementById('r-count').textContent=rows.length+' records';
+  document.getElementById('rec-tbl').innerHTML=`
+    <thead><tr><th>EWB No</th><th>Invoice No</th><th>Date</th><th>To Party</th><th>Dest</th><th>Material</th><th>Qty</th><th>Rate</th><th>Inv.Value</th><th>Vehicle</th><th>EWB</th><th>V.Status</th><th>Unload</th><th></th></tr></thead>
+    <tbody>${rows.map(r=>`<tr>
+      <td class="mono">${r.ewb_no||'—'}</td><td class="mono">${r.invoice_no||'—'}</td>
+      <td>${r.invoice_date||r.ewb_date||'—'}</td>
+      <td style="max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${r.to_party||'—'}</td>
+      <td>${r.to_place||'—'}</td><td>${r.material||'—'}</td>
+      <td style="text-align:right">${fmt(r.quantity)}</td>
+      <td style="text-align:right">${r.rate?'₹'+fmt(r.rate):'—'}</td>
+      <td style="text-align:right;font-weight:500">${r.invoice_value?fmtCr(r.invoice_value):'—'}</td>
+      <td class="mono">${r.vehicle_no||'—'}</td>
+      <td>${ewbBadge(r.ewb_status)}</td><td>${vsBadge(r.vstatus)}</td><td>${ulBadge(r.ulstatus)}</td>
+      <td><button class="btn sm" onclick="openEntry('${r._id}')">Edit</button></td>
+    </tr>`).join('')}</tbody>`;
+}
+
+// ══ ENTRY ══
+function loadEntry() {
+  const id=document.getElementById('entry-sel').value;
+  if(!id){document.getElementById('entry-wrap').style.display='none';document.getElementById('entry-empty').style.display='block';return;}
+  const r=DB.find(x=>x._id===id);if(!r)return;
+  document.getElementById('entry-empty').style.display='none';
+  document.getElementById('entry-wrap').style.display='block';
+  document.getElementById('ewb-locked').innerHTML=[
+    {k:'EWB No',v:r.ewb_no},{k:'Invoice No',v:r.invoice_no},{k:'EWB/Inv Date',v:r.ewb_date||r.invoice_date},
+    {k:'From Party',v:r.from_party},{k:'To Party',v:r.to_party},{k:'Destination',v:r.to_place},
+    {k:'Material',v:r.material},{k:'Qty',v:r.quantity?fmt(r.quantity)+' '+r.qty_unit:'—'},
+    {k:'Vehicle No',v:r.vehicle_no},{k:'Valid Upto',v:r.valid_upto},
+    {k:'Taxable Amt',v:r.taxable_amt?'₹'+fmt(r.taxable_amt):'—'},{k:'EWB Status',v:r.ewb_status},
+  ].map(f=>`<div class="field"><label>${f.k}</label><div class="lock-wrap"><input type="text" value="${f.v||''}" readonly><span class="lock-tag">EWB</span></div></div>`).join('');
+  document.getElementById('op-rate').value=r.rate||'';
+  document.getElementById('op-amt').value=r.amount||'';
+  document.getElementById('op-igst').value=r.igst_entered||'';
+  document.getElementById('op-ival').value=r.invoice_value||'';
+  document.getElementById('op-vs').value=r.vstatus||'PENDING';
+  document.getElementById('op-rd').value=r.reached_date||'';
+  document.getElementById('op-uls').value=r.ulstatus||'PENDING';
+  document.getElementById('op-uld').value=r.ul_date||'';
+  document.getElementById('op-rem').value=r.remarks||'';
+  document.getElementById('entry-msg').textContent='';
+}
+function calcOps(){
+  const id=document.getElementById('entry-sel').value;
+  const r=DB.find(x=>x._id===id);
+  const qty=r?(+r.quantity||0):0;
+  const rate=+document.getElementById('op-rate').value||0;
+  const amt=Math.round(qty*rate);
+  document.getElementById('op-amt').value=amt;
+  document.getElementById('op-igst').value=Math.round(amt*0.18);
+  calcIval();
+}
+function calcIval(){
+  const amt=+document.getElementById('op-amt').value||0;
+  const igst=+document.getElementById('op-igst').value||0;
+  document.getElementById('op-ival').value=amt+igst;
+}
+async function saveEntry(goNext) {
+  const id=document.getElementById('entry-sel').value;if(!id)return;
+  const idx=DB.findIndex(x=>x._id===id);if(idx<0)return;
+  const rate=document.getElementById('op-rate').value;
+  const amount=document.getElementById('op-amt').value;
+  const igst_entered=document.getElementById('op-igst').value;
+  const invoice_value=document.getElementById('op-ival').value;
+  const vstatus=document.getElementById('op-vs').value;
+  const reached_date=document.getElementById('op-rd').value;
+  const ulstatus=document.getElementById('op-uls').value;
+  const ul_date=document.getElementById('op-uld').value;
+  const remarks=document.getElementById('op-rem').value;
+  try {
+    await api(`/api/ewbs/${id}/ops`, {
+      method: 'PUT',
+      body: JSON.stringify({rate,amount,igst_entered,invoice_value,vstatus,reached_date,ulstatus,ul_date,remarks})
+    });
+    // Update local DB
+    DB[idx].rate=rate;DB[idx].amount=amount;DB[idx].igst_entered=igst_entered;
+    DB[idx].invoice_value=invoice_value;DB[idx].vstatus=vstatus;DB[idx].reached_date=reached_date;
+    DB[idx].ulstatus=ulstatus;DB[idx].ul_date=ul_date;DB[idx].remarks=remarks;
+    DB[idx]._ops_done=!!(rate&&vstatus);DB[idx].ops_done=DB[idx]._ops_done;
+    persist();populateSelects();
+    document.getElementById('entry-msg').textContent='✓ Saved';
+    toast('Saved: '+(DB[idx].invoice_no||DB[idx].ewb_no));
+    if(goNext)nextPending();
+  } catch(e) {
+    toast('Save failed: '+e.message,'err');
+  }
+}
+function nextPending(){
+  const p=DB.find(r=>!r._ops_done);
+  if(!p){toast('All entries complete!');return;}
+  document.getElementById('entry-sel').value=p._id;loadEntry();
+}
+function openEntry(id){
+  nav('entry',document.querySelectorAll('.sb-item')[3]);
+  document.getElementById('entry-sel').value=id;loadEntry();
+}
+async function quickUpd(id,field,val){
+  const idx=DB.findIndex(x=>x._id===id);if(idx<0)return;
+  DB[idx][field]=val;DB[idx]._ops_done=!!(DB[idx].rate&&DB[idx].vstatus);
+  persist();
+  try {
+    await api(`/api/ewbs/${id}/status`, {
+      method:'PATCH',
+      body: JSON.stringify({[field]:val})
+    });
+  } catch(e) { toast('Update failed: '+e.message,'err'); }
+}
+
+// ══ BADGES ══
+function ewbBadge(s){
+  if(!s||s==='ACT')return'<span class="badge green">ACT</span>';
+  if(s==='CNL')return'<span class="badge red">CNL</span>';
+  return`<span class="badge gray">${s}</span>`;
+}
+function vsBadge(s){
+  if(s==='REACHED')return'<span class="badge green">REACHED</span>';
+  if(s==='IN TRANSIT')return'<span class="badge amber">IN TRANSIT</span>';
+  return`<span class="badge gray">${s||'PENDING'}</span>`;
+}
+function ulBadge(s){
+  if(s==='DONE')return'<span class="badge green">DONE</span>';
+  if(s==='IN PROGRESS')return'<span class="badge blue">IN PROG</span>';
+  return`<span class="badge gray">${s||'PENDING'}</span>`;
+}
+
+// ══ EXPORT ══
+function exportCSV(){
+  window.open(BACKEND + '/api/export/csv', '_blank');
+}
+function clearOps(){toast('Ops data is stored on server — use the database directly to clear','warn');}
+function clearAll(){toast('Data is stored on server — use the database directly to clear','warn');}
+
+// ══ TOAST ══
+function toast(msg,type='ok'){
+  const el=document.createElement('div');el.className=`t-item ${type}`;el.textContent=msg;
+  document.getElementById('toast').appendChild(el);setTimeout(()=>el.remove(),3000);
+}
+
+// ══ NAV ══
+const PAGE_TITLES={
+  dashboard:['MIS Dashboard','Live data from GST EWB portal'],
+  vehicles:['Vehicle Tracker','Real-time status of all vehicles'],
+  party:['Party Analysis','Summary by consignee and destination'],
+  entry:['Ops Entry','Add rate, vehicle & unloading data to EWBs'],
+  records:['All Records','Complete EWB register with ops data'],
+  fetch:['Fetch EWBs','Pull data from sandbox.co.in API by date'],
+  config:['API Config','Credentials and settings'],
+};
+function nav(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(n=>n.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const [t,s]=PAGE_TITLES[id]||['',''];
+  document.getElementById('tb-title').textContent=t;
+  document.getElementById('tb-sub').textContent=s;
+  if(id==='dashboard')renderDash();
+  if(id==='vehicles')renderVehicles();
+  if(id==='party')renderParty();
+  if(id==='records')renderRecords();
+  document.getElementById('data-count-label').textContent=DB.length+' records in DB';
+}
+
+function refreshAll(){populateSelects();renderDash();updateSidebar();}
+
+// ══ INIT ══
+loadConfigUI();
+updateTokenStatus();
+setInterval(updateTokenStatus, 60000);
+loadDB().then(() => refreshAll());
+
+// Set default dates for fetch
+const today=new Date();
+const fmt2=(d)=>d.toISOString().split('T')[0];
+document.getElementById('f-from').value=fmt2(new Date(today-7*86400000));
+document.getElementById('f-to').value=fmt2(today);
+</script>
+</body>
+</html>
