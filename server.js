@@ -242,6 +242,7 @@ async function fetchEWBDetail(ewbToken, apiKey, ewbNo, docNo, docType) {
   );
   const data = await res.json();
   if (data.code !== 200) throw new Error(`Detail failed EWB ${ewbNo}: ${JSON.stringify(data)}`);
+  console.log(`DETAIL_RESPONSE EWB ${ewbNo}:`, JSON.stringify(data.data).substring(0, 500));
   return data.data?.data || data.data;
 }
 
