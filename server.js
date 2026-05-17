@@ -231,8 +231,9 @@ async function fetchEWBsByDate(ewbToken, apiKey, ddmmyyyy) {
 }
 
 // Step 4 ── Full EWB detail
+
 async function fetchEWBDetail(ewbToken, apiKey, ewbNo, docType = 'INV') {
-  const url = `${SANDBOX}/gst/compliance/e-way-bill/consignor/bill?ewb_no=${ewbNo}&document_type=${docType}`;
+  const url = `${SANDBOX}/gst/compliance/e-way-bill/consignor/bill?document_number=${ewbNo}&document_type=${docType}`;
   console.log(`[Detail] Fetching EWB ${ewbNo} → ${url}`);
 
   const res  = await fetch(url,
