@@ -231,19 +231,21 @@ async function fetchEWBsByDate(ewbToken, apiKey, ddmmyyyy) {
 }
 
 // Step 4 ── Full EWB detail
-async function fetchEWBDetail(ewbToken, apiKey, ewbNo, docNo, docType) {
-  const params = new URLSearchParams({
-    document_type:   docType || 'INV',
-    document_number: docNo   || ewbNo,
-  });
-  const res = await fetch(
-    `${SANDBOX}/gst/compliance/e-way-bill/consignor/bill?${params.toString()}`,
+async function fetchEWBDetail(ewbToken, apiKey, ewbNo, docType = 'INV') {
+  const url = `${SANDBOX}/gst/compliance/e-way-bill/consignor/bill?ewb_no=${ewbNo}&document_type=${docType}`;
+  console.log(`[Detail] Fetching EWB ${ewbNo} → ${url}`);
+
+  const res  = await fetch(url,
     { headers: { authorization: ewbToken, 'x-api-key': apiKey, 'x-api-version': '1.0.0' } }
   );
   const data = await res.json();
+  console.log(`[Detail] EWB ${ewbNo} raw:`, JSON.stringify(data));
+
   if (data.code !== 200) throw new Error(`Detail failed EWB ${ewbNo}: ${JSON.stringify(data)}`);
-  console.log(`DETAIL_RESPONSE EWB ${ewbNo}:`, JSON.stringify(data.data).substring(0, 500));
-  return data.data?.data || data.data;
+
+  const result = data.data?.data || data.data;
+  if (!result) console.warn(`[Detail] EWB ${ewbNo} — code 200 but data is null`);
+  return result;
 }
 
 // ── Map raw API detail to DB row ──
@@ -481,7 +483,7 @@ app.post('/api/fetch', async (req, res) => {
         if (fetchDetails && (!exists || !exists.detail_fetched)) {
           try {
             await sleep(200);
-            const d = mapDetail(await fetchEWBDetail(ewbToken, apiKey, ewbNo, ewb.docNo, ewb.docType || 'INV'), ewbNo);
+            const d = mapDetail(await fetchEWBDetail(ewbToken, apiKey, ewbNo, ewb.docType || 'INV'), ewbNo);
             await pool.query(`
               UPDATE ewbs SET
                 invoice_date     = $1,  from_party       = $2,  from_gstin       = $3,
