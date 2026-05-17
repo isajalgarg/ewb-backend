@@ -233,7 +233,7 @@ async function fetchEWBsByDate(ewbToken, apiKey, ddmmyyyy) {
 // Step 4 ── Full EWB detail
 async function fetchEWBDetail(ewbToken, apiKey, ewbNo) {
   const res = await fetch(
-    `${SANDBOX}/gst/compliance/e-way-bill/consignor/bill/${ewbNo}`,
+    `${SANDBOX}/gst/compliance/e-way-bill/consignor/bill?ewb_no=${ewbNo}`,
     { headers: { authorization: ewbToken, 'x-api-key': apiKey, 'x-api-version': '1.0.0' } }
   );
   const data = await res.json();
