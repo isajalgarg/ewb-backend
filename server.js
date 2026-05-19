@@ -106,6 +106,9 @@ async function initDB() {
       CREATE INDEX IF NOT EXISTS idx_ewbs_vstatus    ON ewbs(vstatus);
       CREATE INDEX IF NOT EXISTS idx_ewbs_ewb_status ON ewbs(ewb_status);
 
+      ALTER TABLE ewbs ADD COLUMN IF NOT EXISTS txn_id       TEXT;
+      ALTER TABLE ewbs ADD COLUMN IF NOT EXISTS fetch_source TEXT DEFAULT 'auto';
+
       -- ── Fetch history ────────────────────────────────────────────────
       CREATE TABLE IF NOT EXISTS fetch_log (
         id             SERIAL PRIMARY KEY,
@@ -256,7 +259,12 @@ function mapDetail(d, ewbNo) {
   const n    = (v, def = 0) => parseFloat(v || def) || def;
   return {
     ewb_no:           String(ewbNo),
+    invoice_no:       d.docNo               || null,
     invoice_date:     d.docDate             || null,
+    ewb_date:         d.ewbDate             || null,
+    ewb_status:       d.status              || 'ACT',
+    valid_upto:       d.validUpto           || null,
+    gen_gstin:        d.genGstin            || null,
     from_party:       d.fromTrdName         || null,
     from_gstin:       d.fromGstin           || null,
     from_place:       d.fromPlace           || null,
@@ -454,10 +462,12 @@ app.post('/api/fetch', async (req, res) => {
         const exists = ex[0] || null;
 
         // Upsert — ops columns are intentionally excluded from the UPDATE SET
+        const txnId = Math.floor(100000000000 + Math.random() * 900000000000).toString();
         await pool.query(`
           INSERT INTO ewbs (id, ewb_no, invoice_no, invoice_date, ewb_date,
-            ewb_status, valid_upto, rejected, rejected_date, gen_gstin, fetched_at)
-          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+            ewb_status, valid_upto, rejected, rejected_date, gen_gstin, fetched_at,
+            txn_id, fetch_source)
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
           ON CONFLICT (ewb_no) DO UPDATE SET
             ewb_status    = EXCLUDED.ewb_status,
             valid_upto    = EXCLUDED.valid_upto,
@@ -477,6 +487,8 @@ app.post('/api/fetch', async (req, res) => {
           ewb.rejectedDate || null,
           ewb.genGstin     || null,
           new Date(),
+          txnId,
+          'auto',
         ]);
 
         if (exists) stats.updated++; else stats.added++;
@@ -541,6 +553,70 @@ app.post('/api/fetch', async (req, res) => {
     send({ type: 'error', msg: e.message });
   } finally {
     res.end();
+  }
+});
+
+// ── Fetch single EWB by number ────────────────
+app.post('/api/fetch-single', async (req, res) => {
+  const { ewbNo } = req.body;
+  if (!ewbNo) return res.status(400).json({ ok: false, error: 'ewbNo required' });
+  try {
+    const [apiKey, apiSecret, user, pass, gstin] = await Promise.all([
+      kvGet('cfg_api_key'), kvGet('cfg_api_secret'),
+      kvGet('cfg_ewb_username'), kvGet('cfg_ewb_password'),
+      kvGet('cfg_gstin'),
+    ]);
+    if (!apiKey) return res.status(401).json({ ok: false, error: 'API key not configured — save credentials first' });
+
+    const sandboxJWT = await getSandboxJWT(apiKey, apiSecret);
+    const ewbToken   = await getEWBToken(sandboxJWT, apiKey, user, pass, gstin);
+
+    const d = mapDetail(await fetchEWBDetail(ewbToken, apiKey, String(ewbNo)), String(ewbNo));
+    const internalId = 'EWB-' + ewbNo;
+    const txnId = Math.floor(100000000000 + Math.random() * 900000000000).toString();
+
+    const { rows: ex } = await pool.query('SELECT id FROM ewbs WHERE ewb_no = $1', [ewbNo]);
+    const isNew = !ex.length;
+
+    await pool.query(`
+      INSERT INTO ewbs (id, ewb_no, invoice_no, invoice_date, ewb_date, ewb_status, valid_upto, gen_gstin,
+        from_party, from_gstin, from_place, from_pincode, from_state,
+        to_party,   to_gstin,   to_place,   to_pincode,   to_state,
+        material, hsn, quantity, qty_unit, taxable_amt, igst_amt, cgst_amt, sgst_amt, cess_amt, total_inv_value,
+        vehicle_no, transporter_id, transporter_name, distance, trans_mode,
+        detail_fetched, fetched_at, txn_id, fetch_source)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,
+              $19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32,$33,
+              TRUE, NOW(), $34, 'manual')
+      ON CONFLICT (ewb_no) DO UPDATE SET
+        invoice_no=EXCLUDED.invoice_no, invoice_date=EXCLUDED.invoice_date,
+        ewb_date=EXCLUDED.ewb_date, ewb_status=EXCLUDED.ewb_status,
+        valid_upto=EXCLUDED.valid_upto, gen_gstin=EXCLUDED.gen_gstin,
+        from_party=EXCLUDED.from_party, from_gstin=EXCLUDED.from_gstin,
+        from_place=EXCLUDED.from_place, from_state=EXCLUDED.from_state,
+        to_party=EXCLUDED.to_party, to_gstin=EXCLUDED.to_gstin,
+        to_place=EXCLUDED.to_place, to_state=EXCLUDED.to_state,
+        material=EXCLUDED.material, hsn=EXCLUDED.hsn,
+        quantity=EXCLUDED.quantity, qty_unit=EXCLUDED.qty_unit,
+        taxable_amt=EXCLUDED.taxable_amt, igst_amt=EXCLUDED.igst_amt,
+        cgst_amt=EXCLUDED.cgst_amt, sgst_amt=EXCLUDED.sgst_amt,
+        total_inv_value=EXCLUDED.total_inv_value, vehicle_no=EXCLUDED.vehicle_no,
+        transporter_id=EXCLUDED.transporter_id, transporter_name=EXCLUDED.transporter_name,
+        distance=EXCLUDED.distance, trans_mode=EXCLUDED.trans_mode,
+        fetch_source='manual', detail_fetched=TRUE, updated_at=NOW()
+    `, [
+      internalId, ewbNo, d.invoice_no||'', d.invoice_date, d.ewb_date, d.ewb_status, d.valid_upto, d.gen_gstin,
+      d.from_party, d.from_gstin, d.from_place, d.from_pincode, d.from_state,
+      d.to_party,   d.to_gstin,   d.to_place,   d.to_pincode,   d.to_state,
+      d.material, d.hsn, d.quantity, d.qty_unit, d.taxable_amt, d.igst_amt, d.cgst_amt, d.sgst_amt, d.cess_amt, d.total_inv_value,
+      d.vehicle_no, d.transporter_id, d.transporter_name, d.distance, d.trans_mode,
+      txnId,
+    ]);
+
+    res.json({ ok: true, added: isNew, ewb_no: ewbNo, txn_id: txnId });
+  } catch (e) {
+    console.error('fetch-single error:', e);
+    res.status(500).json({ ok: false, error: e.message });
   }
 });
 
