@@ -416,13 +416,13 @@ app.post('/api/fetch', async (req, res) => {
   const stats = { found: 0, added: 0, updated: 0, failed: 0, detailFetched: 0 };
 
   try {
-    // Step 1
+    // Step 1 — always fresh sandbox JWT + EWB token to avoid 403
+    await kvClear('sandbox_jwt', 'ewb_token', 'ewb_token_expiry');
     send({ type: 'log', msg: 'Step 1 — Getting Sandbox JWT...' });
     const sandboxJWT = await getSandboxJWT(apiKey, apiSecret);
     send({ type: 'log', msg: '✓ Sandbox JWT obtained' });
 
-    // Step 2 — always fresh token to avoid 403 from stale cache
-    await kvClear('ewb_token', 'ewb_token_expiry');
+    // Step 2
     send({ type: 'log', msg: 'Step 2 — Getting EWB portal token...' });
     const ewbToken = await getEWBToken(sandboxJWT, apiKey, user, pass, gstin);
     send({ type: 'log', msg: '✓ EWB token obtained' });
@@ -569,8 +569,8 @@ app.post('/api/fetch-single', async (req, res) => {
     ]);
     if (!apiKey) return res.status(401).json({ ok: false, error: 'API key not configured — save credentials first' });
 
+    await kvClear('sandbox_jwt', 'ewb_token', 'ewb_token_expiry');
     const sandboxJWT = await getSandboxJWT(apiKey, apiSecret);
-    await kvClear('ewb_token', 'ewb_token_expiry');
     const ewbToken   = await getEWBToken(sandboxJWT, apiKey, user, pass, gstin);
 
     const d = mapDetail(await fetchEWBDetail(ewbToken, apiKey, String(ewbNo)), String(ewbNo));
